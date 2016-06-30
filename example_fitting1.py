@@ -6,8 +6,6 @@ import scipy.optimize
 from pyDOE import *
 from scipy.stats.distributions import norm
 import numdifftools as nd
-import numdifftools.nd_algopy as nda
-
 
 # Simulate the model
 
@@ -56,8 +54,12 @@ for obs_ix, obs in enumerate(model.observables):
 p_to_fit = [p for p in model.parameters
                      if p.name in ['k1', 'k2', 'k3']]
 
+num_calls = 0
+
 # First define the objective function
 def obj_func(x):
+    global num_calls
+    num_calls += 1
     lin_x = 10 ** x
     #print x
     # Run a simulation using these parameters
@@ -72,7 +74,6 @@ def obj_func(x):
         y = sol.yobs[obs.name]
         # Calculate the square difference with the data
         total_err += np.sum((y - data[:, obs_ix])**2)
-    #print total_err
     return total_err
 
 # Hang on to the original values for comparison
@@ -92,21 +93,22 @@ x0 = np.array([np.log10(p.value * 0.1) for p in p_to_fit])
 # Run the minimization algorithm!
 
 def Jacob(x):
-	#x = np.asarray(x)
-	jaco = nd.Jacobian(obj_func)(x)
-	#print jaco,'aaa'
-	return jaco[0]
+    #x = np.asarray(x)
+    jaco = nd.Jacobian(obj_func)(x)
+    #print jaco,'aaa'
+    return jaco[0]
 
 def Hessi(x):
-	#x = np.asarray(x)
-	hes = nd.Hessian(obj_func)(x)
-	#print hes
-	return hes
-	
-	
+    #x = np.asarray(x)
+    hes = nd.Hessian(obj_func)(x)
+    #print hes
+    return hes
+
 #Jacob = nda.Jacobian(obj_func, method = 'reverse')
 #Hessi = nda.Hessian(obj_func)
-result = scipy.optimize.minimize(obj_func, x0, method='trust-ncg',jac = Jacob, hess = Hessi)
+#result = scipy.optimize.minimize(obj_func, x0, method='trust-ncg',jac = Jacob,
+#                                 hess=Hessi)
+result = scipy.optimize.minimize(obj_func, x0, method='nelder-mead')
 
 
 plt.figure()
@@ -126,5 +128,6 @@ sol.run()
 plt.plot(t, sol.y, color='yellow')
 
 
+print "Num calls:", num_calls
 
 
